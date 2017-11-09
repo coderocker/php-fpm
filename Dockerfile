@@ -1,4 +1,4 @@
-FROM php:7.1.10-fpm
+FROM php:5.6.32-fpm
 MAINTAINER Hrishikesh <hrishikesh.raverkar@gmail.com>
 RUN echo "deb http://ftp.de.debian.org/debian stretch main" >> /etc/apt/sources.list
 RUN apt-get update && apt-get -y install build-essential \
@@ -26,7 +26,7 @@ RUN apt-get update && apt-get -y install build-essential \
     re2c \
     ca-certificates --no-install-recommends
 
-# Install PHP 7 Extension Libs
+# Install PHP 5 Extension Libs
 RUN apt-get update && apt-get install -y \
     libfreetype6-dev \
     libjpeg62-turbo-dev \
@@ -61,16 +61,12 @@ RUN ln -s  /usr/include/x86_64-linux-gnu/curl  /usr/include/curl
 RUN mkdir /tmp/ext \
     && mkdir /tmp/phpext \
     && mkdir -p /usr/src/php/ext/
-#    && mkdir -p /usr/local/include/ImageMagick-7 \
-#    && mkdir -p /usr/local/lib/ImageMagick-7.0.7
 
 # Download Required PHP Extensions Source
-RUN \
-#    wget -O /tmp/ext/ImageMagick.tar.gz http://www.imagemagick.org/download/ImageMagick.tar.gz \
-    wget -O /tmp/phpext/uploadprogres.zip https://github.com/Jan-E/uploadprogress/archive/master.zip \
+RUN wget -O /tmp/phpext/uploadprogres.tgz https://pecl.php.net/get/uploadprogress-1.0.3.1.tgz \
     && wget -O /tmp/phpext/igbinary.tgz https://pecl.php.net/get/igbinary-2.0.4.tgz \
     && wget -O /tmp/phpext/msgpack.tgz https://pecl.php.net/get/msgpack-2.0.2.tgz \
-    && wget -O /tmp/phpext/memcached.tgz https://pecl.php.net/get/memcached-3.0.3.tgz \
+    && wget -O /tmp/phpext/memcached.tgz https://pecl.php.net/get/memcached-2.2.0.tgz \
     && wget -O /tmp/phpext/redis.tgz https://pecl.php.net/get/redis-3.1.4.tgz \
     && wget -O /tmp/phpext/imagick.tgz https://pecl.php.net/get/imagick-3.4.3.tgz \
     && wget -O /tmp/phpext/oauth.tgz https://pecl.php.net/get/oauth-2.0.2.tgz \
@@ -81,9 +77,7 @@ RUN \
     && wget -O /tmp/phpext/xdebug.tgz https://pecl.php.net/get/xdebug-2.5.5.tgz
 
 # Un-tar Required PHP Extensions
-RUN \
-#    tar -xvzf /tmp/ext/ImageMagick.tar.gz -C /tmp/ext/ \
-    unzip /tmp/phpext/uploadprogres.zip -d /usr/src/php/ext/ \
+RUN tar -xvzf  /tmp/phpext/uploadprogres.tgz -C /usr/src/php/ext/ \
     && tar -xvzf /tmp/phpext/igbinary.tgz -C /usr/src/php/ext/ \
     && tar -xvzf /tmp/phpext/msgpack.tgz -C /usr/src/php/ext/ \
     && tar -xvzf /tmp/phpext/memcached.tgz -C /usr/src/php/ext/ \
@@ -97,12 +91,10 @@ RUN \
     && tar -xvzf /tmp/phpext/xdebug.tgz -C /usr/src/php/ext/
 
 # Rename PHP Extensions
-RUN \
-#    mv /tmp/ext/ImageMagick-7.0.7-7 /tmp/ext/ImageMagick \
-    mv /usr/src/php/ext/uploadprogress-master /usr/src/php/ext/uploadprogress \
+RUN mv /usr/src/php/ext/uploadprogress-1.0.3.1 /usr/src/php/ext/uploadprogress \
     && mv /usr/src/php/ext/igbinary-2.0.4 /usr/src/php/ext/igbinary \
     && mv /usr/src/php/ext/msgpack-2.0.2 /usr/src/php/ext/msgpack \
-    && mv /usr/src/php/ext/memcached-3.0.3 /usr/src/php/ext/memcached \
+    && mv /usr/src/php/ext/memcached-2.2.0 /usr/src/php/ext/memcached \
     && mv /usr/src/php/ext/redis-3.1.4 /usr/src/php/ext/redis \
     && mv /usr/src/php/ext/imagick-3.4.3 /usr/src/php/ext/imagick \
     && mv /usr/src/php/ext/oauth-2.0.2 /usr/src/php/ext/oauth \
@@ -124,7 +116,6 @@ RUN docker-php-ext-install calendar \
     json \
     mcrypt \
     mbstring \
-    phar \
     curl \
     ftp \
     intl \
@@ -144,31 +135,12 @@ RUN docker-php-ext-install calendar \
     pcntl \
     uploadprogress \
     igbinary \
-    msgpack \
-    oauth \
-    yar \
-    ds \
-    memprof \
-    opencensus \
     xdebug
 
 # Install Memcache and Redis PHP extension
 RUN docker-php-ext-configure memcached --enable-memcached-igbinary \
     && docker-php-ext-configure redis --enable-redis-igbinary \
     && docker-php-ext-install memcached redis
-
-
-#RUN apt-get -y install checkinstall
-#RUN mkdir /usr/local/include/ImageMagick-7 \
-#    && mkdir /usr/local/lib/ImageMagick-7.0.7 \
-#    && cd /tmp/ext/ImageMagick \
-#    && ./configure \
-#    && make clean \
-#    && make
-#RUN checkinstall --nodoc \
-#    && ldconfig /usr/local/lib
-
-
 
 # Set up composer variables
 ENV COMPOSER_BINARY=/usr/local/bin/composer \
@@ -180,8 +152,8 @@ RUN curl -sS https://getcomposer.org/installer | php && \
     mv composer.phar $COMPOSER_BINARY && \
     chmod +x $COMPOSER_BINARY
 
-COPY php.fpm.ini /etc/php7/fpm/php.ini
-COPY php.cli.ini /etc/php7/cli/php.ini
+COPY php.fpm.ini /etc/php5/fpm/php.ini
+COPY php.cli.ini /etc/php5/cli/php.ini
 
 RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
@@ -190,4 +162,4 @@ WORKDIR /var/www
 # Expose Ports & Volumes
 EXPOSE 9000
 
-CMD ["php-fpm", "-F", "-c", "/etc/php7/fpm"]
+CMD ["php-fpm", "-F", "-c", "/etc/php5/fpm"]
