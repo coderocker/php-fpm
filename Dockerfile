@@ -60,13 +60,14 @@ RUN apt-get -y install libcurl4-gnutls-dev
 RUN ln -s  /usr/include/x86_64-linux-gnu/curl  /usr/include/curl
 RUN mkdir /tmp/ext \
     && mkdir /tmp/phpext \
-    && mkdir -p /usr/src/php/ext/ \
-    && mkdir -p /usr/local/include/ImageMagick-7 \
-    && mkdir -p /usr/local/lib/ImageMagick-7.0.7
+    && mkdir -p /usr/src/php/ext/
+#    && mkdir -p /usr/local/include/ImageMagick-7 \
+#    && mkdir -p /usr/local/lib/ImageMagick-7.0.7
 
 # Download Required PHP Extensions Source
-RUN wget -O /tmp/ext/ImageMagick.tar.gz http://www.imagemagick.org/download/ImageMagick.tar.gz \
-    && wget -O /tmp/phpext/uploadprogres.zip https://github.com/Jan-E/uploadprogress/archive/master.zip \
+RUN \
+#    wget -O /tmp/ext/ImageMagick.tar.gz http://www.imagemagick.org/download/ImageMagick.tar.gz \
+    wget -O /tmp/phpext/uploadprogres.zip https://github.com/Jan-E/uploadprogress/archive/master.zip \
     && wget -O /tmp/phpext/igbinary.tgz https://pecl.php.net/get/igbinary-2.0.4.tgz \
     && wget -O /tmp/phpext/msgpack.tgz https://pecl.php.net/get/msgpack-2.0.2.tgz \
     && wget -O /tmp/phpext/memcached.tgz https://pecl.php.net/get/memcached-3.0.3.tgz \
@@ -80,8 +81,9 @@ RUN wget -O /tmp/ext/ImageMagick.tar.gz http://www.imagemagick.org/download/Imag
     && wget -O /tmp/phpext/xdebug.tgz https://pecl.php.net/get/xdebug-2.5.5.tgz
 
 # Un-tar Required PHP Extensions
-RUN tar -xvzf /tmp/ext/ImageMagick.tar.gz -C /tmp/ext/ \
-    && unzip /tmp/phpext/uploadprogres.zip -d /usr/src/php/ext/ \
+RUN \
+#    tar -xvzf /tmp/ext/ImageMagick.tar.gz -C /tmp/ext/ \
+    unzip /tmp/phpext/uploadprogres.zip -d /usr/src/php/ext/ \
     && tar -xvzf /tmp/phpext/igbinary.tgz -C /usr/src/php/ext/ \
     && tar -xvzf /tmp/phpext/msgpack.tgz -C /usr/src/php/ext/ \
     && tar -xvzf /tmp/phpext/memcached.tgz -C /usr/src/php/ext/ \
@@ -95,8 +97,9 @@ RUN tar -xvzf /tmp/ext/ImageMagick.tar.gz -C /tmp/ext/ \
     && tar -xvzf /tmp/phpext/xdebug.tgz -C /usr/src/php/ext/
 
 # Rename PHP Extensions
-RUN mv /tmp/ext/ImageMagick-7.0.7-7 /tmp/ext/ImageMagick \
-    && mv /usr/src/php/ext/uploadprogress-master /usr/src/php/ext/uploadprogress \
+RUN \
+#    mv /tmp/ext/ImageMagick-7.0.7-7 /tmp/ext/ImageMagick \
+    mv /usr/src/php/ext/uploadprogress-master /usr/src/php/ext/uploadprogress \
     && mv /usr/src/php/ext/igbinary-2.0.4 /usr/src/php/ext/igbinary \
     && mv /usr/src/php/ext/msgpack-2.0.2 /usr/src/php/ext/msgpack \
     && mv /usr/src/php/ext/memcached-3.0.3 /usr/src/php/ext/memcached \
