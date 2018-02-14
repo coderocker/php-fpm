@@ -1,6 +1,11 @@
-FROM php:7.1.10-fpm
+FROM php:7.2.2-fpm
 MAINTAINER Hrishikesh <hrishikesh.raverkar@gmail.com>
 RUN echo "deb http://ftp.de.debian.org/debian stretch main" >> /etc/apt/sources.list
+RUN apt-get update && apt-get install -y wget gnupg2
+RUN echo "deb http://repo.mysql.com/apt/debian/ stretch mysql-5.7" > /etc/apt/sources.list.d/mysql.list
+RUN echo "deb-src http://repo.mysql.com/apt/debian/ stretch mysql-5.7" > /etc/apt/sources.list.d/mysql.list
+RUN wget -O /tmp/RPM-GPG-KEY-mysql https://repo.mysql.com/RPM-GPG-KEY-mysql
+RUN apt-key add /tmp/RPM-GPG-KEY-mysql
 RUN apt-get update && apt-get -y install build-essential \
     htop \
     libcurl3 \
@@ -24,14 +29,17 @@ RUN apt-get update && apt-get -y install build-essential \
     make \
     pkg-config \
     re2c \
+    git \
+    xvfb \
     ca-certificates --no-install-recommends
 
 # Install PHP 7 Extension Libs
-RUN apt-get update && apt-get install -y \
+RUN apt-get update
+RUN apt-get install -y \
     libfreetype6-dev \
     libjpeg62-turbo-dev \
     libmcrypt-dev \
-    libpng12-dev \
+    libpng-dev \
     libsqlite3-dev \
     libssl-dev \
     libcurl3-dev \
@@ -47,8 +55,8 @@ RUN apt-get update && apt-get install -y \
     libedit-dev \
     unzip \
     iputils-ping \
-    mysql-client-5.5 \
-    postgresql-client-9.6 \
+    mysql-client \
+    # postgresql-client \
     imagemagick \
     libmemcached-dev \
     libjudydebian1 \
@@ -56,6 +64,7 @@ RUN apt-get update && apt-get install -y \
     checkinstall
 
 RUN apt-get -y install libcurl4-gnutls-dev
+RUN apt-get -y install libpcre*
 # Create required dir
 RUN ln -s  /usr/include/x86_64-linux-gnu/curl  /usr/include/curl
 RUN mkdir /tmp/ext \
@@ -68,22 +77,24 @@ RUN mkdir /tmp/ext \
 RUN \
 #    wget -O /tmp/ext/ImageMagick.tar.gz http://www.imagemagick.org/download/ImageMagick.tar.gz \
     wget -O /tmp/phpext/uploadprogres.zip https://github.com/Jan-E/uploadprogress/archive/master.zip \
-    && wget -O /tmp/phpext/igbinary.tgz https://pecl.php.net/get/igbinary-2.0.4.tgz \
+    && wget -O /tmp/phpext/mcrypt.tgz https://pecl.php.net/get/mcrypt-1.0.1.tgz \
+    && wget -O /tmp/phpext/igbinary.tgz https://pecl.php.net/get/igbinary-2.0.5.tgz \
     && wget -O /tmp/phpext/msgpack.tgz https://pecl.php.net/get/msgpack-2.0.2.tgz \
-    && wget -O /tmp/phpext/memcached.tgz https://pecl.php.net/get/memcached-3.0.3.tgz \
-    && wget -O /tmp/phpext/redis.tgz https://pecl.php.net/get/redis-3.1.4.tgz \
+    && wget -O /tmp/phpext/memcached.tgz https://pecl.php.net/get/memcached-3.0.4.tgz \
+    && wget -O /tmp/phpext/redis.tgz https://pecl.php.net/get/redis-3.1.6.tgz \
     && wget -O /tmp/phpext/imagick.tgz https://pecl.php.net/get/imagick-3.4.3.tgz \
     && wget -O /tmp/phpext/oauth.tgz https://pecl.php.net/get/oauth-2.0.2.tgz \
     && wget -O /tmp/phpext/yar.tgz https://pecl.php.net/get/yar-2.0.3.tgz \
     && wget -O /tmp/phpext/ds.tgz https://pecl.php.net/get/ds-1.2.3.tgz \
     && wget -O /tmp/phpext/memprof.tgz https://pecl.php.net/get/memprof-2.0.0.tgz \
     && wget -O /tmp/phpext/opencensus.tgz https://pecl.php.net/get/opencensus-0.0.3.tgz \
-    && wget -O /tmp/phpext/xdebug.tgz https://pecl.php.net/get/xdebug-2.5.5.tgz
+    && wget -O /tmp/phpext/xdebug.tgz https://pecl.php.net/get/xdebug-2.6.0.tgz
 
 # Un-tar Required PHP Extensions
 RUN \
 #    tar -xvzf /tmp/ext/ImageMagick.tar.gz -C /tmp/ext/ \
     unzip /tmp/phpext/uploadprogres.zip -d /usr/src/php/ext/ \
+    && tar -xvzf /tmp/phpext/mcrypt.tgz -C /usr/src/php/ext/ \
     && tar -xvzf /tmp/phpext/igbinary.tgz -C /usr/src/php/ext/ \
     && tar -xvzf /tmp/phpext/msgpack.tgz -C /usr/src/php/ext/ \
     && tar -xvzf /tmp/phpext/memcached.tgz -C /usr/src/php/ext/ \
@@ -100,17 +111,18 @@ RUN \
 RUN \
 #    mv /tmp/ext/ImageMagick-7.0.7-7 /tmp/ext/ImageMagick \
     mv /usr/src/php/ext/uploadprogress-master /usr/src/php/ext/uploadprogress \
-    && mv /usr/src/php/ext/igbinary-2.0.4 /usr/src/php/ext/igbinary \
+    && mv /usr/src/php/ext/mcrypt-1.0.1 /usr/src/php/ext/mcrypt \
+    && mv /usr/src/php/ext/igbinary-2.0.5 /usr/src/php/ext/igbinary \
     && mv /usr/src/php/ext/msgpack-2.0.2 /usr/src/php/ext/msgpack \
-    && mv /usr/src/php/ext/memcached-3.0.3 /usr/src/php/ext/memcached \
-    && mv /usr/src/php/ext/redis-3.1.4 /usr/src/php/ext/redis \
+    && mv /usr/src/php/ext/memcached-3.0.4 /usr/src/php/ext/memcached \
+    && mv /usr/src/php/ext/redis-3.1.6 /usr/src/php/ext/redis \
     && mv /usr/src/php/ext/imagick-3.4.3 /usr/src/php/ext/imagick \
     && mv /usr/src/php/ext/oauth-2.0.2 /usr/src/php/ext/oauth \
     && mv /usr/src/php/ext/yar-2.0.3 /usr/src/php/ext/yar \
     && mv /usr/src/php/ext/ds-1.2.3 /usr/src/php/ext/ds \
     && mv /usr/src/php/ext/memprof-2.0.0 /usr/src/php/ext/memprof \
     && mv /usr/src/php/ext/opencensus-0.0.3 /usr/src/php/ext/opencensus \
-    && mv /usr/src/php/ext/xdebug-2.5.5 /usr/src/php/ext/xdebug
+    && mv /usr/src/php/ext/xdebug-2.6.0 /usr/src/php/ext/xdebug
 
 # Configure PHP Extensions before installing from source
 RUN docker-php-ext-configure gd --with-freetype-dir=/usr/include/ --with-jpeg-dir=/usr/include/ \
@@ -184,7 +196,7 @@ COPY php.fpm.ini /etc/php7/fpm/php.ini
 COPY php.cli.ini /etc/php7/cli/php.ini
 
 RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
-
+ENV PHPRC=/etc/php7/cli/php.ini
 WORKDIR /var/www
 
 # Expose Ports & Volumes
