@@ -29,6 +29,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get -y install \
     libmemcachedutil2 \
     libjudydebian1 \
     libxslt1.1 \
+    zlibc \
     --no-install-recommends
 RUN curl -sL https://deb.nodesource.com/setup_12.x | bash -
 # Install PHP extensions
