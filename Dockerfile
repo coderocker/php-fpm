@@ -1,11 +1,9 @@
-FROM php:7.0.33-fpm-stretch
+FROM php:7.4.11-fpm-buster
 LABEL maintainer="Hrishikesh Raverkar <hrishikesh.raverkar@gmail.com>"
-ENV XDEBUG_VERSION 2_4_0RC4
-RUN apt-get -qq update
+RUN apt-get -qq update && apt-get -y dist-upgrade
 RUN DEBIAN_FRONTEND=noninteractive apt-get -y install \
     build-essential \
     software-properties-common \
-    checkinstall \
     curl \
     xvfb \
     wget \
@@ -17,14 +15,22 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get -y install \
     telnet \
     zip \
     unzip \
-    mysql-client \
     locate \
     net-tools \
+    gnupg2 \
+    default-mysql-client \
+    libzip4 \
+    libmcrypt4 \
+    libmemcached11 \
+    libc-client2007e \
+    libpq5 \
+    libaspell15 \
+    libtidy5deb1 \
+    libmemcachedutil2 \
+    libjudydebian1 \
+    libxslt1.1 \
     --no-install-recommends
 RUN curl -sL https://deb.nodesource.com/setup_12.x | bash -
-# RUN add-apt-repository "deb http://apt.postgresql.org/pub/repos/apt/ trusty-pgdg main"
-# RUN wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
-# RUN apt-get -qq update
 # Install PHP extensions
 RUN buildDeps=" \
     libicu-dev \
@@ -51,6 +57,7 @@ RUN buildDeps=" \
     libldap2-dev \
     libmagickwand-dev \
     libedit-dev \
+    libonig-dev \
     " \
     && DEBIAN_FRONTEND=noninteractive \
     apt-get -y install $buildDeps nodejs --no-install-recommends \
@@ -60,16 +67,15 @@ RUN buildDeps=" \
     mv /usr/src/php/ext/libxml/config0.m4 /usr/src/php/ext/libxml/config.m4 \
     && docker-php-ext-configure bcmath --enable-bcmath && \
     docker-php-ext-configure gd \
-    --with-freetype-dir=/usr/include/ \
-    --with-jpeg-dir=/usr/include/ \
-    --with-png-dir=/usr/include/ && \
+    --with-freetype=/usr/include/ \
+    --with-jpeg=/usr/include/ && \
     docker-php-ext-configure gettext && \
     docker-php-ext-configure intl --enable-intl && \
     docker-php-ext-configure mbstring --enable-mbstring && \
     docker-php-ext-configure opcache --enable-opcache && \
     docker-php-ext-configure pcntl --enable-pcntl && \
     docker-php-ext-configure soap && \
-    docker-php-ext-configure zip --enable-zip --with-libzip &&\
+    docker-php-ext-configure zip  --with-zip &&\
     docker-php-ext-configure imap --with-kerberos --with-imap-ssl &&\
     docker-php-ext-install zlib \
     && docker-php-ext-install bcmath \
@@ -82,7 +88,6 @@ RUN buildDeps=" \
     pcntl \
     soap \
     zip \
-    mcrypt \
     mysqli \
     pdo_mysql \
     pdo_pgsql \
@@ -107,9 +112,15 @@ RUN buildDeps=" \
     # Install php-apcu
     && pecl install apcu \
     && echo "extension=apcu.so" > /usr/local/etc/php/conf.d/apcu.ini \
-    # Install php-memcached
+    # Install php-mcrypt
     && cd /usr/src/php/ext \
-    && curl -fsSL https://github.com/php-memcached-dev/php-memcached/archive/php7.tar.gz -o memcached.tar.gz \
+    && curl -fsSL https://pecl.php.net/get/mcrypt-1.0.3.tgz -o mcrypt.tar.gz \
+    && mkdir -p mcrypt \
+    && tar -xf mcrypt.tar.gz -C mcrypt --strip-components=1 \
+    && rm mcrypt.tar.gz \
+    && docker-php-ext-install mcrypt \    
+    # Install php-memcached
+    && curl -fsSL https://pecl.php.net/get/memcached-3.1.5.tgz -o memcached.tar.gz \
     && mkdir -p memcached \
     && tar -xf memcached.tar.gz -C memcached --strip-components=1 \
     && rm memcached.tar.gz \
@@ -121,14 +132,14 @@ RUN buildDeps=" \
     && rm memcache.tar.gz \
     && docker-php-ext-install memcache \    
     # Install php-xdebug
-    && curl -fsSL https://github.com/xdebug/xdebug/archive/XDEBUG_$XDEBUG_VERSION.tar.gz -o xdebug.tar.gz \
+    && curl -fsSL https://pecl.php.net/get/xdebug-2.9.8.tgz -o xdebug.tar.gz \
     && mkdir -p xdebug \
     && tar -xf xdebug.tar.gz -C xdebug --strip-components=1 \
     && rm xdebug.tar.gz \
     && docker-php-ext-configure xdebug --enable-xdebug \
     && docker-php-ext-install xdebug \
     # Install php-igbinary
-    && curl -fsSL https://github.com/igbinary/igbinary7/archive/master.tar.gz -o igbinary.tar.gz \
+    && curl -fsSL https://pecl.php.net/get/igbinary-3.1.5.tgz -o igbinary.tar.gz \
     && mkdir -p igbinary \
     && tar -xf igbinary.tar.gz -C igbinary --strip-components=1 \
     && rm igbinary.tar.gz \
@@ -189,18 +200,14 @@ RUN buildDeps=" \
     && rm mailparse.tar.gz \
     && docker-php-ext-install mailparse \    
     # Install php-uploadprogress
-    && curl -fsSL https://github.com/Jan-E/uploadprogress/archive/master.zip -o uploadprogress.zip \
-    # && mkdir -p uploadprogress \
-    && unzip uploadprogress.zip \
-    && rm uploadprogress.zip \
-    && mv uploadprogress-master uploadprogress \
-    && docker-php-ext-install uploadprogress \    
-    # Install php-wddx
-    && docker-php-ext-configure wddx --enable-libxml \
-    && docker-php-ext-install wddx \
+    && curl -fsSL https://pecl.php.net/get/uploadprogress-1.1.2.tgz -o uploadprogress.tar.gz \
+    && mkdir -p uploadprogress \
+    && tar -xf uploadprogress.tar.gz -C uploadprogress --strip-components=1 \
+    && rm uploadprogress.tar.gz \
+    && docker-php-ext-install uploadprogress \
     # Install composer and put binary into $PATH
     && php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');" \
-    && php -r "if (hash_file('sha384', 'composer-setup.php') === 'e0012edf3e80b6978849f5eff0d4b4e4c79ff1609dd1e613307e16318854d24ae64f26d17af3ef0bf7cfb710ca74755a') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;" \
+    && php -r "if (hash_file('sha384', 'composer-setup.php') === '795f976fe0ebd8b75f26a6dd68f78fd3453ce79f32ecb33e7fd087d39bfeb978342fb73ac986cd4f54edd0dc902601dc') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;" \
     && php composer-setup.php --filename=composer --install-dir=/usr/local/bin/ \
     # Install phpunit and put binary into $PATH
     && curl -sSo phpunit.phar https://phar.phpunit.de/phpunit.phar \
@@ -223,17 +230,15 @@ RUN buildDeps=" \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
     && docker-php-source delete
-
+RUN DEBIAN_FRONTEND=noninteractive apt-get -qq update \
+    && apt-get -y install libjudydebian1 \
+    && apt-get autoremove -y \
+    && apt-get clean
+RUN echo "date.timezone = 'UTC'" > /usr/local/etc/php/conf.d/defaults.ini
 # Install Node.js/bower/gulp/grunt
-# RUN curl -sL https://deb.nodesource.com/setup_12.x | bash -
-# RUN apt-get install -y nodejs
 RUN npm install bower gulp grunt-cli -g \
     # Disable xdebug for composer
-    && sed -i "s/zend_extension=/#zend_extension=/g" /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini \
-    # Load xdebug Zend extension with php command
-    && alias php="php -dzend_extension=xdebug.so" \
-    # PHPUnit needs xdebug for coverage. In this case, just make an alias with php command prefix.
-    && alias phpunit="php $(which phpunit)"
+    && alias composer="php -d xdebug.profiler_enable=0 -d memory_limit=-1 /usr/local/bin/composer"
 
 COPY wkhtmltopdf /usr/bin/wkhtmltopdf
 COPY xvfb-run /usr/bin/xvfb-run
